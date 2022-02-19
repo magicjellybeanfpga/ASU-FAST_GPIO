@@ -87,6 +87,27 @@ module r_addr_decoder
 
 endmodule
 
+module wcount_addr_decoder
+#(
+    parameter  integer WIDTH = 32
+)
+(
+    input [1:0] sel,
+    output reg wren0,
+    output reg wren1,
+    output reg wren2,
+    output reg wren3
+);
+
+    always begin
+        wren0 <= (outSel==0)? 1'b1 : 1'bz;
+        wren1 <= (outSel==1)? 1'b1 : 1'bz;
+        wren2 <= (outSel==2)? 1'b1 : 1'bz;
+        wren3 <= (outSel==3)? 1'b1 : 1'bz;
+    end
+
+endmodule
+
 // This module takes 4 gpio registers and groups them so the counter can easily select which one is in use
 // This module needs to be able to change the number of gpio registers from 4 to whatever the desired number is through a variable
 module gpio_out
