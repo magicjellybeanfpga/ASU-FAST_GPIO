@@ -53,7 +53,8 @@ module w_addr_decoder
     output reg wren4
 );
 
-    always begin
+    always @(*)
+    begin
         wren0 <= (addr==0) & sel & w_en ? 1'b1 : 1'bz;
         wren1 <= (addr==1) & sel & w_en ? 1'b1 : 1'bz;
         wren2 <= (addr==2) & sel & w_en ? 1'b1 : 1'bz;
@@ -78,7 +79,8 @@ module r_addr_decoder
     output reg wren3
 );
 
-    always begin
+    always @(*)
+    begin
         wren0 <= (addr==0) & sel & w_en ? 1'b1 : 1'bz;
         wren1 <= (addr==1) & sel & w_en ? 1'b1 : 1'bz;
         wren2 <= (addr==2) & sel & w_en ? 1'b1 : 1'bz;
@@ -92,14 +94,15 @@ module wcount_addr_decoder
     parameter  integer WIDTH = 32
 )
 (
-    input [1:0] sel,
+    input [1:0] outSel,
     output reg wren0,
     output reg wren1,
     output reg wren2,
     output reg wren3
 );
 
-    always begin
+    always @(*)
+    begin
         wren0 <= (outSel==0)? 1'b1 : 1'bz;
         wren1 <= (outSel==1)? 1'b1 : 1'bz;
         wren2 <= (outSel==2)? 1'b1 : 1'bz;
