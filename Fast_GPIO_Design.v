@@ -37,6 +37,56 @@ module counter
     end
 endmodule
 
+//This module sets the enables for each individual gpio register for out and enables the counter
+module w_addr_decoder
+#(
+    parameter  integer WIDTH = 32
+)
+(
+    input sel,
+    input w_en,
+    input [WIDTH-1:0] addr,
+    output reg wren0,
+    output reg wren1,
+    output reg wren2,
+    output reg wren3,
+    output reg wren4
+);
+
+    always begin
+        wren0 <= (addr==0) & sel & w_en ? 1'b1 : 1'bz;
+        wren1 <= (addr==1) & sel & w_en ? 1'b1 : 1'bz;
+        wren2 <= (addr==2) & sel & w_en ? 1'b1 : 1'bz;
+        wren3 <= (addr==3) & sel & w_en ? 1'b1 : 1'bz;
+        wren4 <= (addr==3) & sel & w_en ? 1'b1 : 1'bz;
+    end
+
+endmodule
+
+//This module sets the enables for each individual gpio register for in
+module r_addr_decoder
+#(
+    parameter  integer WIDTH = 32
+)
+(
+    input sel,
+    input w_en,
+    input [WIDTH-1:0] addr,
+    output reg wren0,
+    output reg wren1,
+    output reg wren2,
+    output reg wren3
+);
+
+    always begin
+        wren0 <= (addr==0) & sel & w_en ? 1'b1 : 1'bz;
+        wren1 <= (addr==1) & sel & w_en ? 1'b1 : 1'bz;
+        wren2 <= (addr==2) & sel & w_en ? 1'b1 : 1'bz;
+        wren3 <= (addr==3) & sel & w_en ? 1'b1 : 1'bz;
+    end
+
+endmodule
+
 // This module takes 4 gpio registers and groups them so the counter can easily select which one is in use
 // This module needs to be able to change the number of gpio registers from 4 to whatever the desired number is through a variable
 module gpio_out
