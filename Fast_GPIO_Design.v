@@ -11,12 +11,12 @@ module gpio_reg
     output reg [WIDTH-1:0] dataout
 );
 
-    always @(posedge clk or negedge rstn)
+    always @(posedge clk)
         if(!rstn) begin
             dataout <= 32'bzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz;
         end
         else begin
-            dataout <= en ? datain : 32'bzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz;
+            dataout <= en ? datain : dataout;
         end
 endmodule
 
@@ -24,17 +24,20 @@ endmodule
 module counter
 #(parameter integer WIDTH = 3)
 (
+    input clk,
     input wren0,
     output reg [WIDTH-1:0] outSel
 );
-    initial outSel = 1;
+    initial outSel = 0;
 
-    always @ (posedge wren0) begin
-        if(outSel <= 3'b100) begin
-            outSel <= outSel + 1'b1;
-        end
-        else begin
-            outSel = 1;
+    always @ (posedge clk) begin
+        if(wren0) begin
+            if(outSel <= 3'b100) begin
+                outSel <= outSel + 1'b1;
+            end
+            else  begin
+                outSel = 0;
+            end
         end
     end
 endmodule
@@ -142,13 +145,13 @@ module gpio_out_mux
     gpio_reg #(.WIDTH(WIDTH)) out3(.rstn(rstn), .clk(clk), .en(wren4), .datain(wdata), .dataout(data3));
 
     //Prints changes to the variables being strobed
-    /*always @(posedge clk)
+    always @(posedge clk)
     begin
         $strobe("GPIO-out0 Pins: %b, %b", outSel, out0.dataout);
         $strobe("GPIO-out1 Pins: %b, %b", outSel, out1.dataout);
         $strobe("GPIO-out2 Pins: %b, %b", outSel, out2.dataout);
         $strobe("GPIO-out3 Pins: %b, %b", outSel, out3.dataout);
-    end*/
+    end
 
     always @(*) begin
         if (outSel == 1) begin
@@ -171,23 +174,28 @@ module gpio_out_mux
 
 endmodule
 
-module gpio_en
+/*module gpio_en
 #(
     parameter  integer WIDTH = 32
 )
 (
+    input rstn,
     input clk,
     input wren5,
     input [WIDTH-1:0] endata,
     output reg [WIDTH-1:0] pinout
 );
 
-    always @(*)
+    always @(posedge clk)
+    if(!rstn)
     begin
-        pinout <= wren5 ? endata : 32'bzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz;
+        pinout <= 32'bzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz;
+    end
+    else begin
+        pinout <= wren5 ? endata : pinout;
     end
 
-endmodule
+endmodule*/
 
 // This module takes 4 gpio registers and groups them so the counter can easily select which one is in use
 // This module needs to be able to change the number of gpio registers from 4 to whatever the desired number is through a variable
@@ -303,11 +311,11 @@ parameter integer N = 4)
     end
 
     //Connect modules with regs and wires
-    counter #() counter1(.wren0(wren0), .outSel(outSel));
+    counter #() counter1(.clk(clk), .wren0(wren0), .outSel(outSel));
     w_addr_decoder #() wAddrDecode(.sel(select), .w_en(wen), .addr(address), .wren0(wren0), .wren1(wren1), .wren2(wren2), .wren3(wren3), .wren4(wren4), .wren5(wren5));
     r_addr_decoder #() rAddrDecode(.sel(select), .rw_en(ren), .addr(address), .rden0(rden0), .rden1(rden1), .rden2(rden2), .rden3(rden3));
     wcount_addr_decoder #() wCountDecode(.outSel(outSel), .rdwren0(rdwren0), .rdwren1(rdwren1), .rdwren2(rdwren2), .rdwren3(rdwren3));
-    gpio_en #() gpioEnable(.wren5(wren5), .endata(endata), .pinout(pinout));
+    gpio_reg #() gpioEnable(.clk(clk), .rstn(rstn), .en(wren5), .datain(endata), .dataout(pinout));
     gpio_out_mux #() outMux(.rstn(reset), .clk(clk), .wren1(wren1), .wren2(wren2), .wren3(wren3), .wren4(wren4), .outSel(outSel), .wdata(wdata), .dataout(dataOUT));
     gpio_in_mux #() inMux(.rstn(reset), .clk(clk), .rden0(rden0), .rden1(rden1), .rden2(rden2), .rden3(rden3), .rdwren0(rdwren0), .rdwren1(rdwren1),
             .rdwren2(rdwren2), .rdwren3(rdwren3), .outSel(outSel), .addr(address), .wdata(gpioData), .dataout(readData));
@@ -324,8 +332,7 @@ parameter integer N = 4)
     initial
         begin
             wdata = 32'bzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz;
-            address = 32'b00000000000000000000000000000000;
-            endata = 32'b00000000000000000000000000100001;
+            address = 32'b00000000000000000000000000000001;
 	        clk = 1'b0;
             reset = 1'b0;
             select = 1'b0;
@@ -337,14 +344,27 @@ parameter integer N = 4)
             wen = 1'b1;
             ren = 1'b1;
             select = 1'b1;
-            address = 32'b00000000000000000000000000000001;
+            wdata = 32'b11111111111111111111111111111111;
+            endata = 32'b00000000000000000000000000100001;
 
             @(negedge clk);
-            wdata = 32'b11111111111111111111111111111111;
+            address = 32'b00000000000000000000000000000010;
+
+            @(negedge clk);
+            address = 32'b00000000000000000000000000000011;
+
+            @(negedge clk);
+            address = 32'b00000000000000000000000000000100;
 
             @(negedge clk);
             address = 32'b00000000000000000000000000000101;
 
+            @(negedge clk);
+            address = 32'b00000000000000000000000000000000;
+
+            @(negedge clk);
+            @(negedge clk);
+            @(negedge clk);
             @(negedge clk);
 
             $finish;
