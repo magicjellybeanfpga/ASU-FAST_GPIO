@@ -145,13 +145,13 @@ module gpio_out_mux
     gpio_reg #(.WIDTH(WIDTH)) out3(.rstn(rstn), .clk(clk), .en(wren4), .datain(wdata), .dataout(data3));
 
     //Prints changes to the variables being strobed
-    always @(posedge clk)
+    /*always @(posedge clk)
     begin
         $strobe("GPIO-out0 Pins: %b, %b", outSel, out0.dataout);
         $strobe("GPIO-out1 Pins: %b, %b", outSel, out1.dataout);
         $strobe("GPIO-out2 Pins: %b, %b", outSel, out2.dataout);
         $strobe("GPIO-out3 Pins: %b, %b", outSel, out3.dataout);
-    end
+    end*/
 
     always @(*) begin
         if (outSel == 1) begin
@@ -224,35 +224,35 @@ module gpio_in_mux
     wire [WIDTH-1:0] data0, data1, data2, data3;
     reg [WIDTH-1:0] wdata0, wdata1, wdata2, wdata3;
 
-    gpio_reg #(.WIDTH(WIDTH)) in0(.rstn(rstn), .clk(clk), .en(rden0), .datain(wdata0), .dataout(data0));
-    gpio_reg #(.WIDTH(WIDTH)) in1(.rstn(rstn), .clk(clk), .en(rden1), .datain(wdata1), .dataout(data1));
-    gpio_reg #(.WIDTH(WIDTH)) in2(.rstn(rstn), .clk(clk), .en(rden2), .datain(wdata2), .dataout(data2));
-    gpio_reg #(.WIDTH(WIDTH)) in3(.rstn(rstn), .clk(clk), .en(rden3), .datain(wdata3), .dataout(data3));
+    gpio_reg #(.WIDTH(WIDTH)) in0(.rstn(rstn), .clk(clk), .en(rdwren0), .datain(wdata0), .dataout(data0));
+    gpio_reg #(.WIDTH(WIDTH)) in1(.rstn(rstn), .clk(clk), .en(rdwren1), .datain(wdata1), .dataout(data1));
+    gpio_reg #(.WIDTH(WIDTH)) in2(.rstn(rstn), .clk(clk), .en(rdwren2), .datain(wdata2), .dataout(data2));
+    gpio_reg #(.WIDTH(WIDTH)) in3(.rstn(rstn), .clk(clk), .en(rdwren3), .datain(wdata3), .dataout(data3));
 
     //Prints changes to the variables being strobed
-    /*always @(posedge clk)
+    always @(posedge clk)
     begin
-        $strobe("GPIO-in0 Pins: %d, %b", addr, in0.dataout);
-        $strobe("GPIO-in1 Pins: %d, %b", addr, in1.dataout);
-        $strobe("GPIO-in2 Pins: %d, %b", addr, in2.dataout);
-        $strobe("GPIO-in3 Pins: %d, %b", addr, in3.dataout);
+        $strobe("GPIO-in0 Pins: %b, %b", addr, in0.dataout);
+        $strobe("GPIO-in1 Pins: %b, %b", addr, in1.dataout);
+        $strobe("GPIO-in2 Pins: %b, %b", addr, in2.dataout);
+        $strobe("GPIO-in3 Pins: %b, %b", addr, in3.dataout);
         $strobe("GPIO-in0 Pins: %b, %b", rden0, in0.datain);
         $strobe("GPIO-in0 Pins: %b, %b", rden1, in1.datain);
         $strobe("GPIO-in0 Pins: %b, %b", rden2, in2.datain);
         $strobe("GPIO-in0 Pins: %b, %b", rden3, in3.datain);
-    end*/
+    end
 
     always @(*) begin
-        if (addr == 1) begin
+        if (rden0) begin
             dataout <= data0;
         end
-        else if (addr == 2) begin
+        else if (rden1) begin
             dataout <= data1;
         end
-        else if (addr == 3) begin
+        else if (rden2) begin
             dataout <= data2;
         end
-        else if (addr == 4) begin
+        else if (rden3) begin
             dataout <= data3;
         end
         /*dataout <= (addr == 0) ? data0 : 32'bzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz;
@@ -318,13 +318,13 @@ parameter integer N = 4)
     gpio_reg #() gpioEnable(.clk(clk), .rstn(rstn), .en(wren5), .datain(endata), .dataout(pinout));
     gpio_out_mux #() outMux(.rstn(reset), .clk(clk), .wren1(wren1), .wren2(wren2), .wren3(wren3), .wren4(wren4), .outSel(outSel), .wdata(wdata), .dataout(dataOUT));
     gpio_in_mux #() inMux(.rstn(reset), .clk(clk), .rden0(rden0), .rden1(rden1), .rden2(rden2), .rden3(rden3), .rdwren0(rdwren0), .rdwren1(rdwren1),
-            .rdwren2(rdwren2), .rdwren3(rdwren3), .outSel(outSel), .addr(address), .wdata(gpioData), .dataout(readData));
+            .rdwren2(rdwren2), .rdwren3(rdwren3), .outSel(outSel), .addr(address), .wdata(rdata), .dataout(readData));
 
     genvar i;
     generate
         for(i=0;i<32;i=i+1) begin
             assign gpioData[i] = pinout[i] ? dataOUT[i] : 1'bz;
-            assign rdata[i] = ~pinout[i] ? readData[i] : 1'bz;
+            assign rdata[i] = ~pinout[i] ? gpioData[i] : 1'bz;
         end
     endgenerate
 
@@ -348,12 +348,15 @@ parameter integer N = 4)
             endata = 32'b00000000000000000000000000100001;
 
             @(negedge clk);
+            wdata = 32'b11111111111111111111111111111110;
             address = 32'b00000000000000000000000000000010;
 
             @(negedge clk);
+            wdata = 32'b11111111111111111111111111111101;
             address = 32'b00000000000000000000000000000011;
 
             @(negedge clk);
+            wdata = 32'b11111111111111111111111111011110;
             address = 32'b00000000000000000000000000000100;
 
             @(negedge clk);
